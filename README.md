@@ -16,10 +16,13 @@ The features can be find [HERE]()
 
 ## Instructions
 
+Baseline
+
+
 unzip features to inputs/features/resnet
 
 ```python
-python train_resnetnsp.py \
+python run.py \
 --train_path inputs/preprocessed/MDSS_train.json \
 --valid_path inputs/preprocessed/MDSS_valid.json \
 --test_path inputs/preprocessed/MDSS_test.json \
@@ -27,10 +30,10 @@ python train_resnetnsp.py \
 --lr 1e-5 \
 --gradient_accumulation_steps 2\
 --model_checkpoint bert-base-uncased \
---ft 1 \ # 0: fitune 1: train from scratch
+--ft 1 \ # 1: fitune 0: train from scratch
 --exp_set _baseline \
 --video 0 \ # 0: session identification 1: scene identification
 --gpuid 0 \
---test 1 \ # test for each epoch
+--test_each_epoch 1 \ # test for each epoch
 
 ```

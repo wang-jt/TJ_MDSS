@@ -9,15 +9,13 @@ import copy
 import json
 import logging
 import datetime
-import numpy as np
-import pickle as pkl
+import collections
 from pprint import pformat
 from argparse import ArgumentParser
 from tqdm import tqdm
 
 import torch
 import torch.nn.functional as F
-from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 
 from ignite.engine import Engine, Events
@@ -34,8 +32,7 @@ from transformers.models.bert.configuration_bert import BertConfig
 from transformers.utils.dummy_pt_objects import Adafactor
 
 from model.resnetnspBert import BertForSegClassification, BertForVisSegClassification
-from utils.eval import evaluate
-from utils.metrics import F1ScoreMetric, MovieNetMetric, SklearnAPMetric, DTSMetric, session_eval
+from utils.metrics import F1ScoreMetric
 from data.seg_resnetnsp_dataset import DataSet, collate_fn, get_dataset
 
 logger = logging.getLogger(__file__)
@@ -50,39 +47,16 @@ def average_distributed_scalar(scalar, args):
     return scalar_t.item()
 
 def get_data_loaders_new(args, tokenizer):
-    train_data_path = args.train_pkl_path
-    valid_data_path = args.valid_pkl_path
-    test_data_path = args.test_pkl_path
     # trian data
-    if not os.path.exists(train_data_path):
-        print('no preprocessed train pkl exist, start process data.')
-        train_data = get_dataset(tokenizer, args.train_path)
-        with open(train_data_path, 'wb') as f:
-            pkl.dump(train_data, f)
-    else:
-        print('load train data from pkl')
-        with open(train_data_path, 'rb') as f:
-            train_data = pkl.load(f)
+    print('start load train data.')
+    train_data = get_dataset(tokenizer, args.train_path)
     # valid data
-    if not os.path.exists(valid_data_path):
-        print('no preprocessed valid pkl exist, start process data.')
-        valid_data = get_dataset(tokenizer, args.valid_path)
-        with open(valid_data_path, 'wb') as f:
-            pkl.dump(valid_data, f)
-    else:
-        print('load valid data from pkl')
-        with open(valid_data_path, 'rb') as f:
-            valid_data = pkl.load(f)
+    print('start load train data.')
+    valid_data = get_dataset(tokenizer, args.valid_path)
     # test data
-    if not os.path.exists(test_data_path):
-        print('no preprocessed test pkl exist, start process data.')
-        test_data = get_dataset(tokenizer, args.test_path)
-        with open(test_data_path, 'wb') as f:
-            pkl.dump(test_data, f)
-    else:
-        print('load test data from pkl')
-        with open(test_data_path, 'rb') as f:
-            test_data = pkl.load(f)
+    print('start load train data.')
+    test_data = get_dataset(tokenizer, args.test_path)
+    
     if args.video: 
         with open(args.feature_path) as jh:
             feature = json.load(jh)
@@ -106,9 +80,6 @@ def train():
     parser.add_argument("--train_path", type=str, default="inputs/preprocessed/MDSS_train.json", help="Path of the trainset")
     parser.add_argument("--valid_path", type=str, default="inputs/preprocessed/MDSS_valid.json", help="Path of the validset")
     parser.add_argument("--test_path", type=str, default="inputs/preprocessed/MDSS_test.json", help="Path of the testset")
-    parser.add_argument("--train_pkl_path", type=str, default="inputs/pkls/MDSS_train.pkl", help="Path of the trainset pkl")
-    parser.add_argument("--valid_pkl_path", type=str, default="inputs/pkls/MDSS_valid.pkl", help="Path of the validset pkl")
-    parser.add_argument("--test_pkl_path", type=str, default="inputs/pkls/MDSS_test.pkl", help="Path of the testset pkl")
     parser.add_argument("--feature_path", type=str, default="inputs/MDSS_clipid2frames.json", help="Path of the feature")
     parser.add_argument("--train_batch_size", type=int, default=8, help="Batch size for training")
     parser.add_argument("--valid_batch_size", type=int, default=2, help="Batch size for validation")
@@ -126,7 +97,7 @@ def train():
     parser.add_argument('--exp_set', type=str, default='_test')
     parser.add_argument('--model_checkpoint', type=str, default="/share2/wangyx/prev_trained_model/bert-base-uncased")
 
-    parser.add_argument('--test_every_epoch', type=int, default=1, choices=[0, 1])
+    parser.add_argument('--test_each_epoch', type=int, default=1, choices=[0, 1])
     parser.add_argument('--ft', type=int, default=1, choices=[0, 1], help='1: finetune bert 0: train from scratch')
     parser.add_argument('--warmup_init', type=float, default=1e-07)
     parser.add_argument('--warmup_duration', type=float, default=5000)
@@ -287,24 +258,11 @@ def train():
     )
     validator.add_event_handler(Events.COMPLETED, best_model_handler)
     
-    if args.test_every_epoch:
+    if args.test_each_epoch:
         @trainer.on(Events.EPOCH_COMPLETED)
         def test():
             model.train(False)  
-            if args.video:
-                f1_metric = F1ScoreMetric(average='micro', num_classes=1, multiclass=False, threshold=0.5)
-                ap_metric = SklearnAPMetric()
-                miou_metric = MovieNetMetric()
-                f1_metric = f1_metric.to(args.device)
-                ap_metric = ap_metric.to(args.device)
-                miou_metric = miou_metric.to(args.device)
-            else:
-                f1_metric = F1ScoreMetric(average='micro', num_classes=1, multiclass=False, threshold=0.5)
-                dts_metric = DTSMetric()
-                f1_metric = f1_metric.to(args.device)
-                dts_metric = dts_metric.to(args.device)
-            pred_res = []
-            ref_res = []
+            result = collections.defaultdict(list)
             with torch.no_grad():
                 for batch in tqdm(test_loader, desc='test'):
                     dialog_ids, dialog_type_ids, dialog_mask, session_label_ids, session_indexs,\
@@ -313,55 +271,34 @@ def train():
                         dialog_ids = dialog_ids.to(args.device)
                         dialog_type_ids = dialog_type_ids.to(args.device)
                         dialog_mask = dialog_mask.to(args.device)
-                        labels = session_label_ids.to(args.device)
                         session_indexs = [sess.to(args.device) for sess in session_indexs]
                         logits = model(dialog_ids, dialog_mask, dialog_type_ids, seg_indexs=session_indexs)[0]
                         probs = F.softmax(logits, dim=1)
                         preds = torch.argmax(probs, dim=1)
-                        for vid, sid, pre, gt in zip(vid_lst, utter_lst, preds, labels):
-                            dts_metric.update(vid, sid, pre, gt)
-                        f1_metric.update(probs[:,1], labels)
+                        for vid, pre in zip(vid_lst, preds):
+                            result[vid].append(pre.item())
+
                     else:
                         feature_ids = feature_ids.to(args.device)
                         feature_type_ids = feature_type_ids.to(args.device)
                         feature_mask = feature_mask.to(args.device)
                         scene_indexs = [scene.to(args.device) for scene in scene_indexs]
-                        labels = scene_label_ids.to(args.device)
                         logits = model(feature_ids, feature_mask, feature_type_ids, seg_indexs=scene_indexs)[0]
                         probs = F.softmax(logits, dim=1)
                         preds = torch.argmax(probs, dim=1)
-                        for vid, sid, pre, gt in zip(vid_lst, utter_lst, preds, labels):
-                            miou_metric.update(vid, sid, pre, gt)
-                        f1_metric.update(probs[:,1], labels)
-                        ap_metric.update(probs[:,1], labels)
+                        for vid, pre in zip(vid_lst, preds):
+                            result[vid].append(pre.item())
                         
-                    # save result
-                    prob_list = probs.cpu().numpy().tolist()
-                    label_list = labels.cpu().numpy().tolist()
-                    pred_res.append(prob_list)
-                    ref_res.append(label_list)
-                    # break
 
             output_dir = 'results/{}/'.format(args.exp)
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)        
             if args.video:
-                f1 = f1_metric.compute()
-                ap = ap_metric.compute()
-                miou = miou_metric.compute()
-                print(f1.item(), ap.item(), miou.item())
-                with open(os.path.join(output_dir, 'vis_res.log'), 'a') as fh:
-                    fh.write('f1:{} ap:{} miou:{}\n'.format(f1.item(), ap.item(), miou.item()))
-                with open(os.path.join(output_dir, 'vis_res_{}.json'.format(trainer.state.epoch)), 'w') as jh:
-                    json.dump([pred_res, ref_res], jh)
+                with open(os.path.join(output_dir, 'scene_res_{}.json'.format(trainer.state.epoch)), 'w') as jh:
+                    json.dump(result, jh)
             else:
-                f1 = f1_metric.compute()
-                mwd, mpk, mf1 = dts_metric.compute()
-                print(f1.item(), mwd.item(), mpk.item(), mf1.item())
-                with open(os.path.join(output_dir, 'res.log'), 'a') as fh:
-                    fh.write('f1: {} mwd:{} mpk:{} mf1:{}\n'.format(f1.item(), mwd.item(), mpk.item(), mf1.item()))
-                with open(os.path.join(output_dir, 'res_{}.json'.format(trainer.state.epoch)), 'w') as jh:
-                    json.dump([pred_res, ref_res], jh)
+                with open(os.path.join(output_dir, 'session_res_{}.json'.format(trainer.state.epoch)), 'w') as jh:
+                    json.dump(result, jh)
 
     # Run the training
     trainer.run(train_loader, max_epochs=args.n_epochs)
