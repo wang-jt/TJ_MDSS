@@ -39,6 +39,8 @@ python run.py \
 
 ```
 
+Following evaluation/submission.json, please merge the result file in results/ by yourself. 🤗️
+
 ### Results
 
 | Task                   | F1   |
