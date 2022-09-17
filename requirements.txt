@@ -1,5 +1,4 @@
 numpy
-pickle
 tqdm
 torch==1.7.1
 ignite==0.4.7

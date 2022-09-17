@@ -4,3 +4,6 @@ inputs/preprocessed/*
 ckpts/*
 results/*
 tb_logs/*
+inputs/MDSS_test_gold.json
+evaluation/test_ref_seg.json
+train_resnetnsp.py
