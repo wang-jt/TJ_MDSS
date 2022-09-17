@@ -12,12 +12,13 @@
 
 ### Download
 
-The features can be find [HERE]()
+The features can be find [HERE](https://pan.baidu.com/s/1-42qvhp_ELs6SKCvsb8CJg?pwd=ti9x )
 
-## Instructions
+### Baseline
 
-Baseline
+![baseline](pics/baseline.png?)
 
+### Instruction
 
 unzip features to inputs/features/resnet
 
@@ -37,3 +38,10 @@ python run.py \
 --test_each_epoch 1 \ # test for each epoch
 
 ```
+
+### Results
+
+| Task                   | F1   |
+| ---------------------- | ---- |
+| Scene Identification   | 30.7 |
+| Session Identitication | 35.4 |
