@@ -12,7 +12,7 @@
 
 ### Download
 
-The features can be find [HERE](https://pan.baidu.com/s/1pMKGY6Vkiy7N3YzD041nQA?pwd=9n53)
+The features can be find [BaiduNetDisk](https://pan.baidu.com/s/1pMKGY6Vkiy7N3YzD041nQA?pwd=9n53) OR [BaiduNetDisk_SharedDir](https://pan.baidu.com/s/4rdIzArE)
 
 ### Baseline
 
