@@ -1,0 +1,7 @@
+numpy
+tqdm
+tensorboardX==2.5
+tokenizers==0.10.1
+torchmetrics==0.6.0
+transformers==4.10.2
+
