@@ -108,7 +108,7 @@ def train():
     args.model = 'bert'
     exp_set = args.exp_set
     args.exp = args.model + exp_set
-    args.log_path = 'ckpts/' + args.exp + '/'
+    args.log_path = '/root/autodl-tmp/ckpts/' + args.exp + '/'
     args.tb_path = 'tb_logs/' + args.exp + '/'
     if args.device == 'cuda':
         args.device = 'cuda:' + args.gpuid

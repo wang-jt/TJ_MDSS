@@ -1,9 +1,7 @@
 numpy
 tqdm
-torch==1.7.1
-ignite==0.4.7
 tensorboardX==2.5
 tokenizers==0.10.1
 torchmetrics==0.6.0
-transformers==4.4.2
+transformers==4.10.2
 

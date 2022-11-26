@@ -99,7 +99,8 @@ class DataSet(Dataset):
             scene_index = None
     
         else:
-            clip_feature = np.load('inputs/features/resnet/{}/{}.npy'.format(vid.split('_clip')[0], vid))
+            # clip_feature = np.load('inputs/features/resnet/{}/{}.npy'.format(vid.split('_clip')[0], vid))
+            clip_feature = np.load('/root/autodl-tmp/features/resnet/{}/{}.npy'.format(vid.split('_clip')[0], vid))
             clip_feature_cnt = self.features[vid]
             feature = []
             feature_type = []
