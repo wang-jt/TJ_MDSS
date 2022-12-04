@@ -1,0 +1,15 @@
+python run.py ^
+--train_path inputs/preprocessed/MDSS_train.json ^
+--valid_path inputs/preprocessed/MDSS_valid.json ^
+--test_path inputs/preprocessed/MDSS_test.json ^
+--train_batch_size 1 ^
+--lr 5e-6 ^
+--gradient_accumulation_steps 1 ^
+--model bert_base ^
+--model_checkpoint bert-large-uncased ^
+--ft 1 ^
+--exp_set _baseline ^
+--video 1 ^
+--gpuid 0 ^
+--n_epochs 20 ^
+--test_each_epoch 1
