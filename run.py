@@ -63,16 +63,16 @@ def get_data_loaders_new(args, tokenizer):
         train_dataset = DataSet(train_data, tokenizer, feature)
         valid_dataset = DataSet(valid_data, tokenizer, feature)
         test_dataset = DataSet(test_data, tokenizer, feature)
-        train_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, num_workers=2, shuffle=True, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=True))
-        valid_loader = DataLoader(valid_dataset, batch_size=args.valid_batch_size, num_workers=0, shuffle=False, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=True))
-        test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size, num_workers=0, shuffle=False, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=True))
+        train_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, shuffle=True, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=True))
+        valid_loader = DataLoader(valid_dataset, batch_size=args.valid_batch_size, shuffle=False, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=True))
+        test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=True))
     else:
         train_dataset = DataSet(train_data, tokenizer, None)
         valid_dataset = DataSet(valid_data, tokenizer, None)
         test_dataset = DataSet(test_data, tokenizer, None)
-        train_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, num_workers=2, shuffle=True, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=None))
-        valid_loader = DataLoader(valid_dataset, batch_size=args.valid_batch_size, num_workers=0, shuffle=False, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=None))
-        test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size, num_workers=0, shuffle=False, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=None))
+        train_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, shuffle=True, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=None))
+        valid_loader = DataLoader(valid_dataset, batch_size=args.valid_batch_size, shuffle=False, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=None))
+        test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, collate_fn=lambda x: collate_fn(x, tokenizer.pad_token_id, features=None))
     return train_loader, valid_loader, test_loader
 
 def train():
@@ -183,7 +183,7 @@ def train():
             optimizer.step()
             optimizer.zero_grad()
         return loss.item()
-    trainer = Engine(update)
+    #trainer = Engine(update)
 
     def valid(engine, batch):
         model.train(False)
@@ -214,7 +214,6 @@ def train():
     trainer = Engine(update)
     validator = Engine(valid)
 
-              
     trainer.add_event_handler(Events.EPOCH_COMPLETED, lambda _: validator.run(valid_loader))
 
     if args.ft:

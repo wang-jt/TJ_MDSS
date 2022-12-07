@@ -7,3 +7,5 @@ inputs/MDSS_test_gold.json
 inputs/preprocessed/MDSS_test_gold.json
 evaluation/test_ref_seg.json
 train_resnetnsp.py
+bert-base-uncased
+ckmodels

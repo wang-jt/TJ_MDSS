@@ -6,10 +6,10 @@ python run.py ^
 --lr 5e-6 ^
 --gradient_accumulation_steps 1 ^
 --model bert_base ^
---model_checkpoint bert-large-uncased ^
+--model_checkpoint bert-base-uncased ^
 --ft 1 ^
 --exp_set _baseline ^
 --video 1 ^
 --gpuid 0 ^
---n_epochs 20 ^
+--n_epochs 0 ^
 --test_each_epoch 1
